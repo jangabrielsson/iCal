@@ -1,0 +1,27 @@
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# plua / Lua
+*.luac
+.luarocks/
+luacov.*.out
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.tmp
+*.bak
+*~
+
+# Build / dist
+dist/
+build/

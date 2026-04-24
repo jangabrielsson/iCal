@@ -307,7 +307,7 @@ Each event in the results table has this structure:
 
 **Public (Read-Only) Link:**
 ```
-webcal://p64-caldav.icloud.com/published/2/MTMxNjYxNDMwMTMxNjYxNN60jsE0ciSlGdK4hSjmZOZF01LBw1p8vFrjxFq9NvCD
+webcal://p64-caldav.icloud.com/published/2/<your-token-here>
 ```
 
 **Notes:**
