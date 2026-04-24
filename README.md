@@ -100,25 +100,80 @@ Set these QuickApp variables:
 
 ## Usage Examples
 
-### Downloads raw iCal from URL
-```bash
-# If testing locally with plua:
-plua --fibaro --run-for 0 iCloud_Calendar.lua
-# Set calendarUrl via plua environment or QuickApp variable
+> Inside a QuickApp the library is available as the global **`fibaro.iCal`**
+> (loaded via `--%%file:iCal.lua,ical`). Standalone Lua scripts can use
+> `require("iCal")`.
+
+### Download and list upcoming events from a QuickApp
+```lua
+fibaro.iCal.download("webcal://example.com/cal.ics",
+    { daysAhead = 7 },
+    function(err, events)
+        if err then self:error(err) return end
+        for _, e in ipairs(events) do
+            self:debug(os.date("%c", e.dtstart), e.summary)
+        end
+    end)
 ```
 
-### Parse a local iCal file
+### Download with an explicit time window
+```lua
+local now = os.time()
+fibaro.iCal.download("https://example.com/cal.ics", {
+    startTs = now,
+    endTs   = now + 24 * 3600,   -- next 24 hours
+    timeout = 10000,             -- ms
+}, function(err, events, raw)
+    if err then return self:error("Calendar:", err) end
+    self:debug("Got", #events, "events,", #raw, "bytes")
+end)
+```
+
+`opts` fields: `startTs`, `endTs`, `daysAhead` (default 30, used when
+`endTs` is omitted), `timeout` (ms, default 10000), `maxRedirects`
+(default 3). `webcal://` and `webcals://` URLs are auto-rewritten to
+`https://`.
+
+### Find events happening *right now*
+```lua
+fibaro.iCal.download(url, { daysAhead = 1 }, function(err, events)
+    if err then return end
+    local now = os.time()
+    for _, e in ipairs(events) do
+        if e.dtstart <= now and now < (e.dtend or e.dtstart + 3600) then
+            self:debug("Active:", e.summary)
+        end
+    end
+end)
+```
+
+### Parse a local iCal file (standalone Lua)
 ```lua
 local iCal = require("iCal")
-local file = io.open("calendar.ics", "r")
-local data = file:read("*a")
-file:close()
+local f = io.open("calendar.ics", "r"); local data = f:read("*a"); f:close()
 
-local result = iCal:parse(data)
+local now = os.time()
+local result = iCal.parse(data, now, now + 7 * 86400)
 for _, event in ipairs(result.events) do
-    print(event.summary)
+    print(os.date("%Y-%m-%d %H:%M", event.dtstart), event.summary)
 end
 ```
+
+### Event fields
+
+Each entry in `events` (sorted by `dtstart` ascending) has:
+
+| Field | Type | Notes |
+|---|---|---|
+| `uid`         | string  | Stable across recurring instances |
+| `summary`     | string  | Title |
+| `description` | string  | May be `nil`; multi-line text is unfolded |
+| `location`    | string  | May be `nil` |
+| `dtstart`     | number  | Unix timestamp |
+| `dtend`       | number  | Unix timestamp; may be `nil` for all-day or zero-length |
+| `allDay`      | boolean | `true` for `DATE`-only events |
+| `organizer`   | string  | Email (lowercased), if present |
+| `attendees`   | table   | List of email strings |
 
 ---
 
